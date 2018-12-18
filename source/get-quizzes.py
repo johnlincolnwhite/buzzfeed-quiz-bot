@@ -3,6 +3,7 @@ import html
 import json
 import requests
 import sys
+import os.path
 from datetime import datetime
 
 class QuizDataSet:
@@ -58,6 +59,10 @@ def main(argv):
 def load_previous_data():
     # load the previously downloaded data
     data = QuizDataSet()
+    if not os.path.isfile("output/buzzfeed-quizzes.json"):
+        print("No previous data to load.")
+        return data
+    
     with open("output/buzzfeed-quizzes.json") as json_file:
         data.all_metadata = json.load(json_file)
         data.latest_date = datetime.min
