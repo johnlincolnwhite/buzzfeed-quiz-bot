@@ -5,10 +5,12 @@ import requests
 import sys
 from datetime import datetime
 
-ids = set()
-titles = []
-latest_date = datetime.min
-data = []
+class QuizDataSet:
+    def __init__(self):
+        self.ids = set()
+        self.titles = []
+        self.latest_date = datetime.min
+        self.all_metadata = []
 
 def main(argv):
     try:
@@ -38,36 +40,40 @@ def main(argv):
            "" if reset else "out"))
 
     if not reset:
-        load_previous_data()
-
-    load_new_data(start_page, end_page, max_pages)
+        data = load_previous_data()
+    else:
+        data = QuizDataSet()
+        
+    load_new_data(data, start_page, end_page, max_pages)
 
     # prepare the text output for training the AI
-    with open("output/titles.txt", "w") as titles_file:
-        for t in titles:
+    with open("output/titles.txt", "w+") as titles_file:
+        for t in data.titles:
             titles_file.write("%s\n" % html.unescape(t))
 
     # prepare the json output for the next iteration
-    with open("output/buzzfeed-quizzes.json", "w") as json_file:
-        json_file.write(json.dumps(data))
+    with open("output/buzzfeed-quizzes.json", "w+") as json_file:
+        json_file.write(json.dumps(data.all_metadata))
 
 def load_previous_data():
     # load the previously downloaded data
+    data = QuizDataSet()
     with open("output/buzzfeed-quizzes.json") as json_file:
-        data = json.load(json_file)
-        latest_date = datetime.min
-        for q in data:
+        data.all_metadata = json.load(json_file)
+        data.latest_date = datetime.min
+        for q in data.all_metadata:
             quiz_date = datetime.utcfromtimestamp(int(q["published"]))
-            ids.add(q["id"])
+            data.ids.add(q["id"])
             if q["language"] == "en":
-                titles.append(q["title"])
-            if quiz_date > latest_date:
-                latest_date = quiz_date
+                data.titles.append(q["title"])
+            if quiz_date > data.latest_date:
+                data.latest_date = quiz_date
 
     print("Previous data loaded.")
-    print("Date of latest previously loaded quiz %s" % latest_date.isoformat())
+    print("Date of latest previously loaded quiz %s" % data.latest_date.isoformat())
+    return data
 
-def load_new_data(start_page, end_page, maximum_pages):
+def load_new_data(data, start_page, end_page, maximum_pages):
     # now get some new data
     url = "http://www.buzzfeed.com/api/v2/feeds/quiz?p=%i"
     i = start_page
@@ -92,16 +98,16 @@ def load_new_data(start_page, end_page, maximum_pages):
             if published_date > latest_on_page:
                 latest_on_page = published_date
             id = b["id"]
-            if id in ids:
+            if id in data.ids:
                 continue
-            ids.add(id)
-            data.append(b)
+            data.ids.add(id)
+            data.all_metadata.append(b)
             if b["language"] == "en":
-                titles.append(b["title"])
+                data.titles.append(b["title"])
                 total_added += 1
 
-        print("Read page %i: %s" % (i, latest_on_page.isoformat()))
-        if latest_on_page <= latest_date:
+        print("Read page %i: latest post on page %s" % (i, latest_on_page.isoformat()))
+        if latest_on_page <= data.latest_date:
             break
 
         i += 1
