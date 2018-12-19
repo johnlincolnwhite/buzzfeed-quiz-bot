@@ -48,22 +48,22 @@ def main(argv):
     load_new_data(data, start_page, end_page, max_pages)
 
     # prepare the text output for training the AI
-    with open("output/titles.txt", "w+") as titles_file:
+    with open("../output/titles.txt", "w+") as titles_file:
         for t in data.titles:
             titles_file.write("%s\n" % html.unescape(t))
 
     # prepare the json output for the next iteration
-    with open("output/buzzfeed-quizzes.json", "w+") as json_file:
+    with open("../output/buzzfeed-quizzes.json", "w+") as json_file:
         json_file.write(json.dumps(data.all_metadata))
 
 def load_previous_data():
     # load the previously downloaded data
     data = QuizDataSet()
-    if not os.path.isfile("output/buzzfeed-quizzes.json"):
+    if not os.path.isfile("../output/buzzfeed-quizzes.json"):
         print("No previous data to load.")
         return data
     
-    with open("output/buzzfeed-quizzes.json") as json_file:
+    with open("../output/buzzfeed-quizzes.json") as json_file:
         data.all_metadata = json.load(json_file)
         data.latest_date = datetime.min
         for q in data.all_metadata:
